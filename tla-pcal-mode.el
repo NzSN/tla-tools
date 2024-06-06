@@ -95,7 +95,8 @@
        '("assert" "await" "begin" "call" "define" "do" "either"
          "else" "elsif" "end" "goto" "if" "macro" "or" "print"
          "procedure" "process" "return" "skip" "then" "variable"
-         "variables" "when" "while" "with" ":=" "||")
+         "variables" "when" "while" "with" ":=" "||" "IF" "THEN"
+         "ELSE")
        'symbols)
      . font-lock-keyword-face)
     (,(concat "\\bmacro\\S+\\(" pcal-mode--identifier-re "\\)\\((.*)\\)?\\S+begin")
