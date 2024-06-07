@@ -1,0 +1,16 @@
+rule batch_emacs
+  command = HOME=. emacs -batch --eval "(package-initialize)" $args
+  pool    = console
+
+rule compile_file
+  command = HOME=. emacs -batch --eval "(package-initialize)" $args -f batch-byte-compile $in
+
+build .emacs.d/elpa: batch_emacs
+  args = --eval "(progn (push '(\"melpa\" . \"https://melpa.org/packages/\") package-archives) (package-refresh-contents) (package-install 'transient) (package-install 'polymode)))"
+
+build tla-tools.elc: compile_file tla-tools.el | .emacs.d/elpa
+build tla-pcal-mode.elc: compile_file tla-pcal-mode.el | .emacs.d/elpa
+build test/tla-pcal-mode-test.elc: compile_file test/tla-pcal-mode-test.el | .emacs.d/elpa
+
+build tests: batch_emacs | tla-tools.elc tla-pcal-mode.elc test/tla-pcal-mode-test.elc
+  args = -l tla-tools.elc -l tla-pcal-mode.elc -l test/tla-pcal-mode-test.elc -f ert-run-tests-batch-and-exit
