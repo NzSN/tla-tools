@@ -73,10 +73,11 @@
         (insert line "\n"))
       (goto-char (point-min))
       (forward-line n) ; Add something in to place point at various places in line?
-      (let ((expected-indent (current-indentation)))
+      (let ((expected-indent (current-indentation))
+            (pcal-mode-indent-offset 2)
+            (indent-tabs-mode nil))
         (delete-horizontal-space)
-        (let* ((pcal-mode-indent-offset 2) ; dynamic binding because of defvar
-               (actual-indent (funcall indent-func))
+        (let* ((actual-indent (funcall indent-func))
                (exp-line (elt lines n)))
           ;; Add enough extra data to make clear where the failure happened
           (should (equal (list expected-indent (list 'line n) exp-line)
