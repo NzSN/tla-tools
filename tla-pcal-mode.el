@@ -177,11 +177,8 @@
 (defun tla-mode-indent-line ()
   "Indent the current line according to TLA+ rules."
   (interactive)
-  (save-excursion
-    (beginning-of-line)
-    (let ((col (tla-mode--indent-column)))
-      (when col
-        (indent-line-to col)))))
+  (when-let ((col (tla-mode--indent-column)))
+    (indent-line-to col)))
 
 (defcustom pcal-mode-indent-offset 2
   "Amount of columns to indent lines in PlusCal code."
