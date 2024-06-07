@@ -73,13 +73,8 @@
         (insert line "\n"))
       (goto-char (point-min))
       (forward-line n) ; Add something in to place point at various places in line?
-      (let ((expected-indent 0))
-        (save-excursion
-          (beginning-of-line)
-          (skip-chars-forward " ")
-          (setq expected-indent (current-column))
-          (beginning-of-line)
-          (delete-horizontal-space))
+      (let ((expected-indent (current-indentation)))
+        (delete-horizontal-space)
         (let* ((pcal-mode-indent-offset 2) ; dynamic binding because of defvar
                (actual-indent (funcall indent-func))
                (exp-line (elt lines n)))
