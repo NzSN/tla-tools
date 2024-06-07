@@ -227,7 +227,7 @@
   ".*;"
   "Regexp for matching the end of a statement.")
 
-(defvar pcal-mode--statement-begin-re
+(defvar pcal-mode--variables-begin-re
   (concat "^[[:blank:]]*variables?\\>")
   "Regexp for matching the start of a statement.")
 
@@ -285,7 +285,7 @@ nil if the syntax isn't recognized for indentation."
                  (setq current (current-indentation)))
                 ((looking-at-p pcal-mode--statement-end-re)
                  (setq after-stmt t))
-                ((looking-at-p pcal-mode--statement-begin-re)
+                ((looking-at-p pcal-mode--variables-begin-re)
                  (if after-stmt
                      (setq current (current-indentation))
                    (setq current (+ (current-indentation) pcal-mode-indent-offset))))
