@@ -53,8 +53,8 @@
   ;; in the test file
   (let ((lines (read-lines (test-file-path (concat test-name "." mode))))
         (indent-func (if (equal mode "pcal")
-                         #'pcal-mode--indent-column
-                       #'tla-mode--indent-column)))
+                         #'pcal-mode-indent-line
+                       #'tla-mode-indent-line)))
     (run-indent-test lines indent-func)))
 
 (ert-deftest pcal-mode--indent-column-test ()      (indent-test "indent-columns" "pcal"))
@@ -77,11 +77,15 @@
             (pcal-mode-indent-offset 2)
             (indent-tabs-mode nil))
         (delete-horizontal-space)
-        (let* ((actual-indent (funcall indent-func))
-               (exp-line (elt lines n)))
+        (funcall indent-func)
+        (let ((actual-indent (current-indentation))
+              (exp-line (elt lines n))
+              (actual-line (buffer-substring-no-properties
+                            (line-beginning-position)
+                            (line-end-position))))
           ;; Add enough extra data to make clear where the failure happened
           (should (equal (list expected-indent (list 'line n) exp-line)
-                         (list actual-indent (list 'line n) exp-line))))))))
+                         (list actual-indent (list 'line n) actual-line))))))))
 
 (ert-deftest tla-mode--keep-conjucts-indented ()
   (let ((test-lines
