@@ -90,6 +90,10 @@
     ,@tla-pcal-mode--shared-keywords
     ))
 
+(defface pcal-mode-label-face
+  '((t (:inherit shadow)))
+  "Face for PlusCal labels.")
+
 (defvar pcal-mode-font-lock-keywords
   `((,(regexp-opt
        '("assert" "await" "begin" "call" "define" "do" "either"
@@ -99,6 +103,8 @@
          "ELSE")
        'symbols)
      . font-lock-keyword-face)
+    (,(concat "^\\s-*\\(" pcal-mode--identifier-re ":\\)[^=]")
+     . '(1 'pcal-mode-label-face))
     (,(concat "\\bmacro\\S+\\(" pcal-mode--identifier-re "\\)\\((.*)\\)?\\S+begin")
      . '(1 font-lock-function-name-face))
     ,@tla-pcal-mode--shared-keywords))
