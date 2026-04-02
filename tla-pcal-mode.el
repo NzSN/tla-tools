@@ -404,6 +404,16 @@ be added to this command."
   :type 'string
   :risky t)
 
+(defcustom tla-apalache-command "apalache-mc"
+  "The command to run the Apalache symbolic model checker.
+Can be the apalache-mc script, or e.g. `java -jar apalache.jar'.
+
+Apalache is a bounded symbolic model checker for TLA+ that uses
+SMT solving. Unlike TLC's explicit enumeration, Apalache handles
+large/infinite domains symbolically."
+  :type 'string
+  :risky t)
+
 (transient-define-infix tla--tlc-config-file ()
   :description "TLC configuration"
   :class 'transient-lisp-variable
@@ -413,17 +423,89 @@ be added to this command."
   :argument "-config "
   :reader (lambda (prompt _initial-input _history)
             (read-file-name
-             prompt
-             (file-name-directory (or tla--current-config-file ""))
-             (file-name-nondirectory (or tla--current-config-file ""))
-             t
-             nil
-             (lambda (f)
-               ;; If the extension isn't ".cfg", TLC will add ".cfg" to the
-               ;; filename by itself and then fail to find the config file
-               (or (not (stringp f))
-                   (directory-name-p f)
-                   (string= (file-name-extension f) "cfg"))))))
+              prompt
+              (file-name-directory (or tla--current-config-file ""))
+              (file-name-nondirectory (or tla--current-config-file ""))
+              t
+              nil
+              (lambda (f)
+                ;; If the extension isn't ".cfg", TLC will add ".cfg" to the
+                ;; filename by itself and then fail to find the config file
+                (or (not (stringp f))
+                    (directory-name-p f)
+                    (string= (file-name-extension f) "cfg"))))))
+
+;; Apalache options
+(defvar tla--apalache-inv "Inv"
+  "Default invariant for Apalache model checking.")
+
+(defvar tla--apalache-length "10"
+  "Default execution length for Apalache bounded model checking.")
+
+(defvar tla--apalache-cinit nil
+  "Constant initializer predicate for Apalache (optional).")
+
+(defvar tla--apalache-max-run "100"
+  "Number of simulation runs for Apalache simulate command (default: 100).")
+
+(transient-define-infix tla--apalache-max-run-infix ()
+  :description "Max runs (simulate)"
+  :class 'transient-lisp-variable
+  :variable 'tla--apalache-max-run
+  :key "-r"
+  :shortarg "-r"
+  :argument "--max-run="
+  :reader (lambda (prompt _initial-input _history)
+            (read-string prompt tla--apalache-max-run)))
+
+(transient-define-infix tla--apalache-inv-infix ()
+  :description "Invariant"
+  :class 'transient-lisp-variable
+  :variable 'tla--apalache-inv
+  :key "-i"
+  :shortarg "-i"
+  :argument "--inv="
+  :reader (lambda (prompt _initial-input _history)
+            (read-string prompt tla--apalache-inv)))
+
+(transient-define-infix tla--apalache-length-infix ()
+  :description "Length (steps)"
+  :class 'transient-lisp-variable
+  :variable 'tla--apalache-length
+  :key "-l"
+  :shortarg "-l"
+  :argument "--length="
+  :reader (lambda (prompt _initial-input _history)
+            (read-string prompt tla--apalache-length)))
+
+(transient-define-infix tla--apalache-config-infix ()
+  :description "Config file"
+  :class 'transient-lisp-variable
+  :variable 'tla--current-config-file
+  :key "-c"
+  :shortarg "-c"
+  :argument "--config="
+  :reader (lambda (prompt _initial-input _history)
+            (read-file-name
+              prompt
+              (file-name-directory (or tla--current-config-file ""))
+              (file-name-nondirectory (or tla--current-config-file ""))
+              nil
+              nil
+              (lambda (f)
+                (or (not (stringp f))
+                    (directory-name-p f)
+                    (string= (file-name-extension f) "cfg"))))))
+
+(transient-define-infix tla--apalache-cinit-infix ()
+  :description "ConstInit predicate"
+  :class 'transient-lisp-variable
+  :variable 'tla--apalache-cinit
+  :key "-C"
+  :shortarg "-C"
+  :argument "--cinit="
+  :reader (lambda (prompt _initial-input _history)
+            (read-string prompt (or tla--apalache-cinit ""))))
 
 (defun tla--run-pcal (&optional _args)
   (interactive
@@ -459,6 +541,98 @@ be added to this command."
                (shell-quote-argument buffer-file-name)))
   (compile compile-command))
 
+(defun tla--run-apalache (&optional args)
+  "Run Apalache symbolic model checker on current TLA+ spec.
+Apalache uses bounded model checking with SMT solving.
+Requires --inv and --length parameters (mandatory for check command)."
+  (interactive
+   (list (transient-args 'tla-pcal-transient)))
+  (transient-set)
+  (let* ((filename (file-relative-name buffer-file-name))
+         (inv-arg (car (seq-filter (lambda (a) (string-prefix-p "--inv=" a)) args)))
+         (inv (if inv-arg (substring inv-arg 6) tla--apalache-inv))
+         (length-arg (car (seq-filter (lambda (a) (string-prefix-p "--length=" a)) args)))
+         (length (if length-arg (substring length-arg 9) tla--apalache-length))
+         (config-arg (car (seq-filter (lambda (a) (string-prefix-p "--config=" a)) args)))
+         (config (when config-arg (substring config-arg 9)))
+         (cinit-arg (car (seq-filter (lambda (a) (string-prefix-p "--cinit=" a)) args)))
+         (cinit (when cinit-arg (substring cinit-arg 7)))
+         (no-deadlock (member "--no-deadlock" args)))
+    (set (make-local-variable 'compile-command)
+         (concat tla-apalache-command " check "
+                 "--inv=" inv " "
+                 "--length=" length " "
+                 (when config (concat "--config=" config " "))
+                 (when cinit (concat "--cinit=" cinit " "))
+                 (when no-deadlock "--no-deadlock ")
+                 (shell-quote-argument filename)))
+    (compile compile-command)))
+
+(defun tla--run-apalache-parse ()
+  "Run Apalache parse on current TLA+ spec.
+Parses and flattens the specification for syntax validation."
+  (interactive)
+  (let ((filename (file-relative-name buffer-file-name)))
+    (set (make-local-variable 'compile-command)
+         (concat tla-apalache-command " parse "
+                 (shell-quote-argument filename)))
+    (compile compile-command)))
+
+(defun tla--run-apalache-typecheck ()
+  "Run Apalache typecheck on current TLA+ spec.
+Runs Snowcat type checker to catch type errors early."
+  (interactive)
+  (let ((filename (file-relative-name buffer-file-name)))
+    (set (make-local-variable 'compile-command)
+         (concat tla-apalache-command " typecheck "
+                 (shell-quote-argument filename)))
+    (compile compile-command)))
+
+(defun tla--run-apalache-simulate (&optional args)
+  "Run Apalache simulate on current TLA+ spec.
+Randomized symbolic execution, faster than check for finding violations.
+Uses same parameters as check plus --max-run for number of simulations."
+  (interactive
+   (list (transient-args 'tla-pcal-transient)))
+  (transient-set)
+  (let* ((filename (file-relative-name buffer-file-name))
+         (inv-arg (car (seq-filter (lambda (a) (string-prefix-p "--inv=" a)) args)))
+         (inv (if inv-arg (substring inv-arg 6) tla--apalache-inv))
+         (length-arg (car (seq-filter (lambda (a) (string-prefix-p "--length=" a)) args)))
+         (length (if length-arg (substring length-arg 9) tla--apalache-length))
+         (max-run-arg (car (seq-filter (lambda (a) (string-prefix-p "--max-run=" a)) args)))
+         (max-run (if max-run-arg (substring max-run-arg 10) tla--apalache-max-run))
+         (config-arg (car (seq-filter (lambda (a) (string-prefix-p "--config=" a)) args)))
+         (config (when config-arg (substring config-arg 9)))
+         (cinit-arg (car (seq-filter (lambda (a) (string-prefix-p "--cinit=" a)) args)))
+         (cinit (when cinit-arg (substring cinit-arg 7)))
+         (no-deadlock (member "--no-deadlock" args)))
+    (set (make-local-variable 'compile-command)
+         (concat tla-apalache-command " simulate "
+                 "--inv=" inv " "
+                 "--length=" length " "
+                 "--max-run=" max-run " "
+                 (when config (concat "--config=" config " "))
+                 (when cinit (concat "--cinit=" cinit " "))
+                 (when no-deadlock "--no-deadlock ")
+                 (shell-quote-argument filename)))
+    (compile compile-command)))
+
+(defun tla--run-apalache-test (&optional args)
+  "Run Apalache test on current TLA+ spec.
+Single action testing mode for unit testing individual actions."
+  (interactive
+   (list (transient-args 'tla-pcal-transient)))
+  (transient-set)
+  (let* ((filename (file-relative-name buffer-file-name))
+         (config-arg (car (seq-filter (lambda (a) (string-prefix-p "--config=" a)) args)))
+         (config (when config-arg (substring config-arg 9))))
+    (set (make-local-variable 'compile-command)
+         (concat tla-apalache-command " test "
+                 (when config (concat "--config=" config " "))
+                 (shell-quote-argument filename)))
+    (compile compile-command)))
+
 (transient-define-prefix tla-pcal-transient ()
   "Menu of commands for TLA+ and PlusCal files."
   :value '("-shade")
@@ -468,6 +642,18 @@ be added to this command."
    ("-d" "Skip deadlock checking" "-deadlock")
    (tla--tlc-config-file)
    ("m" "Run TLC model checker" tla--run-tlc)]
+  ["Apalache"
+   ("P" "Parse spec" tla--run-apalache-parse)
+   ("T" "Typecheck spec" tla--run-apalache-typecheck)
+   (tla--apalache-inv-infix)
+   (tla--apalache-length-infix)
+   (tla--apalache-max-run-infix)
+   (tla--apalache-config-infix)
+   (tla--apalache-cinit-infix)
+   ("-n" "No deadlock checking" "--no-deadlock")
+   ("a" "Run check" tla--run-apalache)
+   ("s" "Run simulate" tla--run-apalache-simulate)
+   ("x" "Run test" tla--run-apalache-test)]
   ["PlusCal"
    ("t" "Translate PlusCal to TLA+" tla--run-pcal)]
   ["PDF"
