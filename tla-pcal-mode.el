@@ -448,6 +448,11 @@ large/infinite domains symbolically."
 (defvar tla--apalache-max-run "100"
   "Number of simulation runs for Apalache simulate command (default: 100).")
 
+(defvar tla-pcal--apalache-output-traces nil
+  "Output trace option for Apalache (optional).
+Accepts \"true\" or \"false\".
+When nil, the option is omitted and Apalache uses its default.")
+
 (transient-define-infix tla--apalache-max-run-infix ()
   :description "Max runs (simulate)"
   :class 'transient-lisp-variable
@@ -507,6 +512,15 @@ large/infinite domains symbolically."
   :reader (lambda (prompt _initial-input _history)
             (read-string prompt (or tla--apalache-cinit ""))))
 
+(transient-define-infix tla-pcal--apalache-output-traces-infix ()
+  :description "Output trace"
+  :class 'transient-lisp-variable
+  :variable 'tla-pcal--apalache-output-traces
+  :key "-o"
+  :shortarg "-o"
+  :argument "--output-traces="
+  :reader (lambda (_prompt _initial-input _history) "true"))
+
 (defun tla--run-pcal (&optional _args)
   (interactive
    (list (transient-args 'tla-pcal-transient)))
@@ -557,7 +571,9 @@ Requires --inv and --length parameters (mandatory for check command)."
          (config (when config-arg (substring config-arg 9)))
          (cinit-arg (car (seq-filter (lambda (a) (string-prefix-p "--cinit=" a)) args)))
          (cinit (when cinit-arg (substring cinit-arg 7)))
-         (no-deadlock (member "--no-deadlock" args)))
+         (no-deadlock (member "--no-deadlock" args))
+         (output-traces-arg (car (seq-filter (lambda (a) (string-prefix-p "--output-traces=" a)) args)))
+         (output-traces (if output-traces-arg (substring output-traces-arg 15) tla-pcal--apalache-output-traces)))
     (set (make-local-variable 'compile-command)
          (concat tla-apalache-command " check "
                  "--inv=" inv " "
@@ -565,6 +581,7 @@ Requires --inv and --length parameters (mandatory for check command)."
                  (when config (concat "--config=" config " "))
                  (when cinit (concat "--cinit=" cinit " "))
                  (when no-deadlock "--no-deadlock ")
+                 (when output-traces "--output-traces=true ")
                  (shell-quote-argument filename)))
     (compile compile-command)))
 
@@ -606,7 +623,9 @@ Uses same parameters as check plus --max-run for number of simulations."
          (config (when config-arg (substring config-arg 9)))
          (cinit-arg (car (seq-filter (lambda (a) (string-prefix-p "--cinit=" a)) args)))
          (cinit (when cinit-arg (substring cinit-arg 7)))
-         (no-deadlock (member "--no-deadlock" args)))
+         (no-deadlock (member "--no-deadlock" args))
+         (output-traces-arg (car (seq-filter (lambda (a) (string-prefix-p "--output-traces=" a)) args)))
+         (output-traces (if output-traces-arg (substring output-traces-arg 15) tla-pcal--apalache-output-traces)))
     (set (make-local-variable 'compile-command)
          (concat tla-apalache-command " simulate "
                  "--inv=" inv " "
@@ -615,6 +634,7 @@ Uses same parameters as check plus --max-run for number of simulations."
                  (when config (concat "--config=" config " "))
                  (when cinit (concat "--cinit=" cinit " "))
                  (when no-deadlock "--no-deadlock ")
+                 (when output-traces (concat "--output-traces=" (shell-quote-argument output-traces) " "))
                  (shell-quote-argument filename)))
     (compile compile-command)))
 
@@ -626,10 +646,13 @@ Single action testing mode for unit testing individual actions."
   (transient-set)
   (let* ((filename (file-relative-name buffer-file-name))
          (config-arg (car (seq-filter (lambda (a) (string-prefix-p "--config=" a)) args)))
-         (config (when config-arg (substring config-arg 9))))
+         (config (when config-arg (substring config-arg 9)))
+         (output-traces-arg (car (seq-filter (lambda (a) (string-prefix-p "--output-traces=" a)) args)))
+         (output-traces (if output-traces-arg (substring output-traces-arg 15) tla-pcal--apalache-output-traces)))
     (set (make-local-variable 'compile-command)
          (concat tla-apalache-command " test "
                  (when config (concat "--config=" config " "))
+                 (when output-traces (concat "--output-traces=" (shell-quote-argument output-traces) " "))
                  (shell-quote-argument filename)))
     (compile compile-command)))
 
@@ -651,6 +674,7 @@ Single action testing mode for unit testing individual actions."
    (tla--apalache-config-infix)
    (tla--apalache-cinit-infix)
    ("-n" "No deadlock checking" "--no-deadlock")
+   (tla-pcal--apalache-output-traces-infix)
    ("a" "Run check" tla--run-apalache)
    ("s" "Run simulate" tla--run-apalache-simulate)
    ("x" "Run test" tla--run-apalache-test)]
@@ -672,3 +696,7 @@ Single action testing mode for unit testing individual actions."
 
 (provide 'tla-pcal-mode)
 ;;; tla-pcal-mode.el ends here
+;;; tla-pcal-mode.el ends here
+;;; pcal-mode.el ends here
+;;; tla-pcal-mode.el ends here
+;;; pcal-mode.el ends here
