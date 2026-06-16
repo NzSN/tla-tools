@@ -80,10 +80,11 @@
 
 (defface tla-tlaps-step-face
   '((t (:foreground "forest green" :weight bold)))
-  "Face for TLAPS proof step labels like <1>1. <2>3a. <A>2.")
+  "Face for TLAPS proof step labels like <1>1. <2>3a. <A>2."
+  :group 'tla+)
 
 (defvar tla-mode-font-lock-keywords
-  `(("<[[:word:]]+>[[:word:]]+\\."
+  `(("<[[:word:]]+>[[:word:]]*\\."
      . 'tla-tlaps-step-face)
     (,(regexp-opt
        '("ACTION" "ASSUME" "ASSUMPTION" "AXIOM" "BOOLEAN" "BY"
