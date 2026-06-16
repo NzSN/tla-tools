@@ -84,17 +84,17 @@
   :group 'tla+)
 
 (defface tla-keyword-face
-  '((t (:inherit font-lock-keyword-face)))
+  '((t (:foreground "forest green" :weight bold)))
   "Face for TLA+ keywords."
   :group 'tla+)
 
 (defface tla-tlaps-keyword-face
-  '((t (:inherit font-lock-keyword-face)))
+  '((t (:foreground "forest green" :weight bold)))
   "Face for TLAPS-specific keywords."
   :group 'tla+)
 
 (defvar tla-mode-font-lock-keywords
-  `(("<[[:word:]]+\\(>[[:word:]]*\\.?\\)?"
+  `(("<[[:word:]]>+\\([[:word:]]*\\.?\\)?"
      . 'tla-tlaps-step-face)
     (,(regexp-opt
        '("ACTION" "ASSUME" "BY" "COROLLARY" "DEF" "DEFINE" "DEFS"
