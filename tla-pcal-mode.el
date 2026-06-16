@@ -94,7 +94,7 @@
   :group 'tla+)
 
 (defvar tla-mode-font-lock-keywords
-  `(("<[[:word:]]+>[[:word:]]*\\."
+  `(("<[[:word:]]+\\(>[[:word:]]*\\.?\\)?"
      . 'tla-tlaps-step-face)
     (,(regexp-opt
        '("ACTION" "ASSUME" "BY" "COROLLARY" "DEF" "DEFINE" "DEFS"
