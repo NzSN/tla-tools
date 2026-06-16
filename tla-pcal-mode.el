@@ -83,22 +83,35 @@
   "Face for TLAPS proof step labels like <1>1. <2>3a. <A>2."
   :group 'tla+)
 
+(defface tla-keyword-face
+  '((t (:inherit font-lock-keyword-face)))
+  "Face for TLA+ keywords."
+  :group 'tla+)
+
+(defface tla-tlaps-keyword-face
+  '((t (:inherit font-lock-keyword-face)))
+  "Face for TLAPS-specific keywords."
+  :group 'tla+)
+
 (defvar tla-mode-font-lock-keywords
   `(("<[[:word:]]+>[[:word:]]*\\."
      . 'tla-tlaps-step-face)
     (,(regexp-opt
-       '("ACTION" "ASSUME" "ASSUMPTION" "AXIOM" "BOOLEAN" "BY"
-         "CASE" "CHOOSE" "CONSTANT" "CONSTANTS" "COROLLARY"
-         "DEF" "DEFINE" "DEFS" "DOMAIN" "ELSE" "ENABLED"
-         "EXCEPT" "EXTENDS" "HAVE" "HIDE" "IF" "IN"
-         "INSTANCE" "LAMBDA" "LEMMA" "LET" "LOCAL" "MODULE"
-         "NEW" "OBVIOUS" "OMITTED" "ONLY" "OTHER" "PICK"
-         "PROOF" "PROPOSITION" "PROVE" "QED" "RECURSIVE" "SF_"
-         "STATE" "STRING" "SUBSET" "SUFFICES" "TAKE" "TEMPORAL"
-         "THEN" "THEOREM" "UNCHANGED" "UNION" "USE"
-         "VARIABLE" "VARIABLES" "WF_" "WITH" "WITNESS")
+       '("ACTION" "ASSUME" "BY" "COROLLARY" "DEF" "DEFINE" "DEFS"
+         "HAVE" "HIDE" "LEMMA" "NEW" "OBVIOUS" "OMITTED" "ONLY"
+         "PICK" "PROOF" "PROPOSITION" "PROVE" "QED" "RECURSIVE"
+         "STATE" "SUFFICES" "TAKE" "TEMPORAL" "THEOREM" "USE"
+         "WITNESS")
        'symbols)
-     . font-lock-keyword-face)
+     . 'tla-tlaps-keyword-face)
+    (,(regexp-opt
+       '("ASSUMPTION" "AXIOM" "BOOLEAN" "CASE" "CHOOSE" "CONSTANT"
+         "CONSTANTS" "DOMAIN" "ELSE" "ENABLED" "EXCEPT" "EXTENDS"
+         "IF" "IN" "INSTANCE" "LAMBDA" "LET" "LOCAL" "MODULE"
+         "OTHER" "SF_" "STRING" "SUBSET" "THEN" "UNCHANGED"
+         "UNION" "VARIABLE" "VARIABLES" "WF_" "WITH")
+       'symbols)
+     . 'tla-keyword-face)
     ,@tla-pcal-mode--shared-keywords
     )) 
 
