@@ -80,15 +80,20 @@
 
 (defvar tla-mode-font-lock-keywords
   `((,(regexp-opt
-       '("ASSUME" "ASSUMPTION" "AXIOM" "CASE" "CHOOSE" "CONSTANT"
-         "CONSTANTS" "DOMAIN" "ELSE" "ENABLED" "EXCEPT" "EXTENDS"
-         "IF" "IN" "INSTANCE" "LET" "LOCAL" "MODULE" "OTHER"
-         "SF_" "SUBSET" "THEN" "THEORUM" "UNCHANGED" "UNION"
-         "VARIABLE" "VARIABLES" "WF_" "WITH")
+       '("ACTION" "ASSUME" "ASSUMPTION" "AXIOM" "BOOLEAN" "BY"
+         "CASE" "CHOOSE" "CONSTANT" "CONSTANTS" "COROLLARY"
+         "DEF" "DEFINE" "DEFS" "DOMAIN" "ELSE" "ENABLED"
+         "EXCEPT" "EXTENDS" "HAVE" "HIDE" "IF" "IN"
+         "INSTANCE" "LAMBDA" "LEMMA" "LET" "LOCAL" "MODULE"
+         "NEW" "OBVIOUS" "OMITTED" "ONLY" "OTHER" "PICK"
+         "PROOF" "PROPOSITION" "PROVE" "QED" "RECURSIVE" "SF_"
+         "STATE" "STRING" "SUBSET" "SUFFICES" "TAKE" "TEMPORAL"
+         "THEN" "THEOREM" "UNCHANGED" "UNION" "USE"
+         "VARIABLE" "VARIABLES" "WF_" "WITH" "WITNESS")
        'symbols)
      . font-lock-keyword-face)
     ,@tla-pcal-mode--shared-keywords
-    ))
+    )) 
 
 (defface pcal-mode-label-face
   '((t (:inherit shadow)))
