@@ -79,7 +79,7 @@
      ))
 
 (defface tla-tlaps-step-face
-  '((t (:foreground "yellow" :weight bold)))
+  '((t (:foreground "red" :weight bold)))
   "Face for TLAPS proof step labels like <1>1. <2>3a. <A>2.")
 
 (defvar tla-mode-font-lock-keywords
