@@ -235,7 +235,7 @@ An alist with keys :kind, :status, :location, :obligations, :sub_count.")
         (end (if (use-region-p) (region-end) (point-max))))
     (tla-tlapm--prove-range beg end)))
 
-(defun tla--run-tlapm (&optional _args)
+(defun tla-tlapm-run (&optional _args)
   "Run TLAPS proof manager on the current buffer."
   (interactive)
   (transient-set)

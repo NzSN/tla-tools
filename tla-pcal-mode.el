@@ -414,7 +414,9 @@ be added to this command."
   ["PlusCal"
    ("t" "Translate PlusCal to TLA+" tla--run-pcal)]
   ["TLAPS"
-   ("l" "Run tlapm proof checker" tla--run-tlapm)]
+   ("l" "Run tlapm proof checker" tla-tlapm-run)
+   ("L" "Prove step at point" tla-tlapm-prove-step)
+   ("P" "Prove region/buffer" tla-tlapm-prove-region)]
   ["PDF"
    ("-s" "Shade comments" "-shade")
    ("p" "Create PDF Version of spec" tla--convert-to-pdf)])
