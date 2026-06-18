@@ -130,24 +130,26 @@ An alist with keys :kind, :status, :location, :obligations, :sub_count.")
   (setq tla-tlapm--step-overlays nil))
 
 (defun tla-tlapm--make-step-overlays (beg end face hover)
-  "Create overlays between BEG and END with FACE and HOVER, skipping TLAPS keywords.
+  "Create overlays between BEG and END with FACE and HOVER.
+Skips TLAPS keywords and leading whitespace on each line.
 Returns a list of created overlays."
   (let ((overlays nil)
-        (kw-re (concat "\\_<" (regexp-opt tla-tlapm--keywords) "\\_>"))
+        (skip-re (concat "\\_<" (regexp-opt tla-tlapm--keywords) "\\_>"
+                         "\\|^[ \t]+"))
         (pos beg))
     (save-excursion
       (while (< pos end)
         (goto-char pos)
-        (if (re-search-forward kw-re end t)
-            (let ((kw-beg (match-beginning 0))
-                  (kw-end (match-end 0)))
-              (when (> kw-beg pos)
-                (let ((ov (make-overlay pos kw-beg)))
+        (if (re-search-forward skip-re end t)
+            (let ((skip-beg (match-beginning 0))
+                  (skip-end (match-end 0)))
+              (when (> skip-beg pos)
+                (let ((ov (make-overlay pos skip-beg)))
                   (overlay-put ov 'face face)
                   (when hover (overlay-put ov 'help-echo hover))
                   (overlay-put ov 'tlapm-step t)
                   (push ov overlays)))
-              (setq pos kw-end))
+              (setq pos (max pos skip-end)))
           (when (> end pos)
             (let ((ov (make-overlay pos end)))
               (overlay-put ov 'face face)
