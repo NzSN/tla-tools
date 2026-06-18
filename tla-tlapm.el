@@ -129,6 +129,28 @@ An alist with keys :kind, :status, :location, :obligations, :sub_count.")
     (delete-overlay ov))
   (setq tla-tlapm--step-overlays nil))
 
+(defun tla-tlapm--make-step-overlays (beg end face hover)
+  "Create overlays between BEG and END with FACE and HOVER, skipping spaces.
+Returns a list of created overlays."
+  (let ((overlays nil)
+        (pos beg))
+    (save-excursion
+      (while (< pos end)
+        (goto-char pos)
+        (skip-chars-forward " \t" end)
+        (setq pos (point))
+        (when (< pos end)
+          (let ((seg-start pos))
+            (skip-chars-forward "^ \t" end)
+            (setq pos (point))
+            (when (> pos seg-start)
+              (let ((ov (make-overlay seg-start pos)))
+                (overlay-put ov 'face face)
+                (when hover (overlay-put ov 'help-echo hover))
+                (overlay-put ov 'tlapm-step t)
+                (push ov overlays)))))))
+    (nreverse overlays)))
+
 (defun tla-tlapm--apply-step-markers (markers)
   "Apply overlays for proof step MARKERS in the current buffer."
   (tla-tlapm--clear-step-overlays)
@@ -138,11 +160,10 @@ An alist with keys :kind, :status, :location, :obligations, :sub_count.")
            (hover (lsp-get m :hover))
            (beg (lsp--position-to-point (lsp-get range :start)))
            (end (lsp--position-to-point (lsp-get range :end)))
-           (ov (make-overlay beg end)))
-      (overlay-put ov 'face (tla-tlapm--status-face status))
-      (overlay-put ov 'help-echo hover)
-      (overlay-put ov 'tlapm-step t)
-      (push ov tla-tlapm--step-overlays))))
+           (ovs (tla-tlapm--make-step-overlays
+                 beg end (tla-tlapm--status-face status) hover)))
+      (setq tla-tlapm--step-overlays
+            (nconc ovs tla-tlapm--step-overlays)))))
 
 (defun tla-tlapm--lsp-handle-proof-step-markers (_workspace params)
   "Handle tlaplus/tlaps/proofStepMarkers notification from tlapm_lsp."
