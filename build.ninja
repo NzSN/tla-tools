@@ -10,7 +10,10 @@ build .emacs.d/elpa: batch_emacs
 
 build tla-tools.elc: compile_file tla-tools.el | .emacs.d/elpa
 build tla-pcal-mode.elc: compile_file tla-pcal-mode.el | .emacs.d/elpa
+build tla-tlc.elc: compile_file tla-tlc.el | .emacs.d/elpa
+build tla-tlapm.elc: compile_file tla-tlapm.el | .emacs.d/elpa
+build tla-apalache.elc: compile_file tla-apalache.el | .emacs.d/elpa
 build test/tla-pcal-mode-test.elc: compile_file test/tla-pcal-mode-test.el | .emacs.d/elpa
 
-build tests: batch_emacs | tla-tools.elc tla-pcal-mode.elc test/tla-pcal-mode-test.elc
+build tests: batch_emacs | tla-tools.elc tla-pcal-mode.elc tla-tlc.elc tla-tlapm.elc tla-apalache.elc test/tla-pcal-mode-test.elc
   args = -l tla-tools.elc -l tla-pcal-mode.elc -l test/tla-pcal-mode-test.elc -f ert-run-tests-batch-and-exit
