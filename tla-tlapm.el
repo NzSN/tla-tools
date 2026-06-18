@@ -53,27 +53,27 @@
   :group 'tla-tlapm)
 
 (defface tla-tlapm-proved-face
-  '((t (:background "#1b5e20" :extend t)))
+  '((t (:underline "#1b5e20" :extend nil)))
   "Face for proved proof steps."
   :group 'tla-tlapm)
 
 (defface tla-tlapm-failed-face
-  '((t (:background "#b71c1c" :extend t)))
+  '((t (:underline "red" :extend nil)))
   "Face for failed proof steps."
   :group 'tla-tlapm)
 
 (defface tla-tlapm-omitted-face
-  '((t (:background "#4e342e" :extend t)))
+  '((t (:underline "#4e342e" :extend nil)))
   "Face for omitted proof steps."
   :group 'tla-tlapm)
 
 (defface tla-tlapm-missing-face
-  '((t (:background "#e65100" :extend t)))
+  '((t (:underline "#e65100" :extend nil)))
   "Face for missing proof steps."
   :group 'tla-tlapm)
 
 (defface tla-tlapm-pending-face
-  '((t (:background "#f57f17" :extend t)))
+  '((t (:underline "#f57f17" :extend nil)))
   "Face for pending/progress proof steps."
   :group 'tla-tlapm)
 
@@ -212,6 +212,28 @@ An alist with keys :kind, :status, :location, :obligations, :sub_count.")
     ("<[[:word:]]>+\\([[:word:]]*\\.?\\)?"
      . 'tla-tlaps-step-face))
   "Font lock keywords for TLAPS proof constructs.")
+
+(defun tla-tlapm--prove-range (beg end)
+  "Ask tlapm_lsp to check proofs in range BEG to END."
+  (lsp-request-async "workspace/executeCommand"
+    (list :command "tlaplus.tlaps.check-step.lsp"
+          :arguments (vector
+                      (lsp--versioned-text-document-identifier)
+                      (lsp--region-to-range beg end)))
+    (lambda (_response) nil)
+    :mode 'detached))
+
+(defun tla-tlapm-prove-step ()
+  "Ask tlapm_lsp to prove the proof step at point."
+  (interactive)
+  (tla-tlapm--prove-range (line-beginning-position) (line-end-position)))
+
+(defun tla-tlapm-prove-region ()
+  "Ask tlapm_lsp to prove the region, or entire buffer if no region is active."
+  (interactive)
+  (let ((beg (if (use-region-p) (region-beginning) (point-min)))
+        (end (if (use-region-p) (region-end) (point-max))))
+    (tla-tlapm--prove-range beg end)))
 
 (defun tla--run-tlapm (&optional _args)
   "Run TLAPS proof manager on the current buffer."
