@@ -59,14 +59,14 @@
 ;;;###autoload
 (with-eval-after-load 'eglot
   (add-to-list 'eglot-server-programs
-               `((tla-mode tla-pcal-mode) . ,tla-tlapm-lsp-command))
+               `((tla-mode tla-pcal-mode) . (,tla-tlapm-lsp-command "--stdio")))
   (add-hook 'tla-mode-hook #'eglot-ensure))
 
 ;;;###autoload
 (with-eval-after-load 'lsp-mode
   (lsp-register-client
    (make-lsp-client :new-connection (lsp-stdio-connection
-                                     (lambda () tla-tlapm-lsp-command))
+                                     (lambda () (list tla-tlapm-lsp-command "--stdio")))
                     :major-modes '(tla-mode tla-pcal-mode)
                     :server-id 'tlapm-lsp
                     :activation-fn 'lsp-activate-on
