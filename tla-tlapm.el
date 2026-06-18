@@ -29,6 +29,14 @@
 
 (require 'transient)
 
+(declare-function lsp-get "ext:lsp-mode" (plist key))
+(declare-function lsp--position-to-point "ext:lsp-mode" (position))
+(declare-function lsp-warn "ext:lsp-mode" (format &rest args))
+(declare-function lsp-register-client "ext:lsp-mode" (client))
+(declare-function make-lsp-client "ext:lsp-mode" (&rest args))
+(declare-function lsp-stdio-connection "ext:lsp-mode" (command))
+(declare-function lsp-deferred "ext:lsp-mode" ())
+
 (defgroup tla-tlapm nil
   "TLAPS proof system support for TLA+."
   :group 'languages
@@ -42,6 +50,31 @@
 (defface tla-tlaps-keyword-face
   '((t (:foreground "forest green" :weight bold)))
   "Face for TLAPS-specific keywords."
+  :group 'tla-tlapm)
+
+(defface tla-tlapm-proved-face
+  '((t (:background "#1b5e20" :extend t)))
+  "Face for proved proof steps."
+  :group 'tla-tlapm)
+
+(defface tla-tlapm-failed-face
+  '((t (:background "#b71c1c" :extend t)))
+  "Face for failed proof steps."
+  :group 'tla-tlapm)
+
+(defface tla-tlapm-omitted-face
+  '((t (:background "#4e342e" :extend t)))
+  "Face for omitted proof steps."
+  :group 'tla-tlapm)
+
+(defface tla-tlapm-missing-face
+  '((t (:background "#e65100" :extend t)))
+  "Face for missing proof steps."
+  :group 'tla-tlapm)
+
+(defface tla-tlapm-pending-face
+  '((t (:background "#f57f17" :extend t)))
+  "Face for pending/progress proof steps."
   :group 'tla-tlapm)
 
 (defcustom tla-tlapm-command "tlapm"
@@ -62,13 +95,107 @@
                `((tla-mode tla-pcal-mode) . (,tla-tlapm-lsp-command "--stdio")))
   (add-hook 'tla-mode-hook #'eglot-ensure))
 
+(defvar-local tla-tlapm--proof-step-markers nil
+  "Buffer-local proof step markers from the tlapm_lsp server.
+Each element is an alist with keys :status, :range, :hover.")
+
+(defvar-local tla-tlapm--step-overlays nil
+  "Overlays currently showing proof step status in this buffer.")
+
+(defvar-local tla-tlapm--current-proof-step nil
+  "Buffer-local current proof step details from the tlapm_lsp server.
+An alist with keys :kind, :status, :location, :obligations, :sub_count.")
+
+(defun tla-tlapm--uri-to-path (uri)
+  "Convert a file:// URI to a file path."
+  (if (string-match "\\`file://\\([^/]\\|\\'\\)?\\(.*\\)\\'" uri)
+      (match-string 2 uri)
+    uri))
+
+(defun tla-tlapm--status-face (status)
+  "Return the face for a proof step STATUS."
+  (pcase status
+    ("proved"   'tla-tlapm-proved-face)
+    ("failed"   'tla-tlapm-failed-face)
+    ("omitted"  'tla-tlapm-omitted-face)
+    ("missing"  'tla-tlapm-missing-face)
+    ("pending"  'tla-tlapm-pending-face)
+    ("progress" 'tla-tlapm-pending-face)
+    (_          'tla-tlapm-pending-face)))
+
+(defun tla-tlapm--clear-step-overlays ()
+  "Remove all tlapm step overlays in the current buffer."
+  (dolist (ov tla-tlapm--step-overlays)
+    (delete-overlay ov))
+  (setq tla-tlapm--step-overlays nil))
+
+(defun tla-tlapm--apply-step-markers (markers)
+  "Apply overlays for proof step MARKERS in the current buffer."
+  (tla-tlapm--clear-step-overlays)
+  (dolist (m markers)
+    (let* ((range (lsp-get m :range))
+           (status (lsp-get m :status))
+           (hover (lsp-get m :hover))
+           (beg (lsp--position-to-point (lsp-get range :start)))
+           (end (lsp--position-to-point (lsp-get range :end)))
+           (ov (make-overlay beg end)))
+      (overlay-put ov 'face (tla-tlapm--status-face status))
+      (overlay-put ov 'help-echo hover)
+      (overlay-put ov 'tlapm-step t)
+      (push ov tla-tlapm--step-overlays))))
+
+(defun tla-tlapm--lsp-handle-proof-step-markers (_workspace params)
+  "Handle tlaplus/tlaps/proofStepMarkers notification from tlapm_lsp."
+  (condition-case err
+      (when (vectorp params)
+        (let* ((uri (aref params 0))
+               (markers (aref params 1))
+               (path (tla-tlapm--uri-to-path uri))
+               buffer)
+          (when (and path (setq buffer (find-buffer-visiting path)))
+            (with-current-buffer buffer
+              (setq tla-tlapm--proof-step-markers (append markers nil))
+              (tla-tlapm--apply-step-markers tla-tlapm--proof-step-markers)))))
+    (error
+     (lsp-warn "tlapm_lsp proofStepMarkers: %s" (error-message-string err)))))
+
+(defun tla-tlapm--lsp-handle-current-proof-step (_workspace params)
+  "Handle tlaplus/tlaps/currentProofStep notification from tlapm_lsp."
+  (condition-case err
+      (when (and params (not (eq params :json-null)))
+        (let* ((loc (lsp-get params :location))
+               (uri (lsp-get loc :uri))
+               (path (tla-tlapm--uri-to-path uri))
+               buffer
+               (counts (lsp-get params :sub_count)))
+          (when (and path (setq buffer (find-buffer-visiting path)))
+            (with-current-buffer buffer
+              (setq tla-tlapm--current-proof-step params)
+              (when counts
+                (message "TLAPS: proved %s / failed %s / omitted %s / missing %s"
+                         (lsp-get counts :proved)
+                         (lsp-get counts :failed)
+                         (lsp-get counts :omitted)
+                         (lsp-get counts :missing)))))))
+    (error
+     (lsp-warn "tlapm_lsp currentProofStep: %s" (error-message-string err)))))
+
 ;;;###autoload
 (with-eval-after-load 'lsp-mode
+  (add-to-list 'lsp-language-id-configuration '(tla-mode . "tlaplus"))
   (lsp-register-client
    (make-lsp-client :new-connection (lsp-stdio-connection
                                      (lambda () (list tla-tlapm-lsp-command "--stdio")))
                     :major-modes '(tla-mode tla-pcal-mode)
+                    :language-id "tlaplus"
                     :server-id 'tlapm-lsp
+                    :notification-handlers
+                    (let ((ht (make-hash-table :test 'equal)))
+                      (puthash "tlaplus/tlaps/proofStepMarkers"
+                               #'tla-tlapm--lsp-handle-proof-step-markers ht)
+                      (puthash "tlaplus/tlaps/currentProofStep"
+                               #'tla-tlapm--lsp-handle-current-proof-step ht)
+                      ht)
                     :activation-fn 'lsp-activate-on
                     :priority -1))
   (add-hook 'tla-mode-hook #'lsp-deferred))
