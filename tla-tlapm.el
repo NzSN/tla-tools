@@ -53,7 +53,7 @@
   :group 'tla-tlapm)
 
 (defface tla-tlapm-proved-face
-  '((t (:underline "#1b5e20" :extend nil)))
+  '((t (:underline "green" :extend nil)))
   "Face for proved proof steps."
   :group 'tla-tlapm)
 
