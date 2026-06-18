@@ -22,7 +22,8 @@
 ;;; Commentary:
 
 ;; Support for the TLA+ Proof System (TLAPS / tlapm).
-;; Provides font-lock for proof constructs and commands for running tlapm.
+;; Provides font-lock for proof constructs, commands for running tlapm,
+;; and LSP integration for tlapm_lsp (eglot / lsp-mode).
 
 ;;; Code:
 
@@ -48,6 +49,29 @@
   :type 'string
   :risky t
   :group 'tla-tlapm)
+
+(defcustom tla-tlapm-lsp-command "tlapm_lsp"
+  "The command to run the TLAPS LSP server."
+  :type 'string
+  :risky t
+  :group 'tla-tlapm)
+
+;;;###autoload
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               `((tla-mode tla-pcal-mode) . ,tla-tlapm-lsp-command))
+  (add-hook 'tla-mode-hook #'eglot-ensure))
+
+;;;###autoload
+(with-eval-after-load 'lsp-mode
+  (lsp-register-client
+   (make-lsp-client :new-connection (lsp-stdio-connection
+                                     (lambda () tla-tlapm-lsp-command))
+                    :major-modes '(tla-mode tla-pcal-mode)
+                    :server-id 'tlapm-lsp
+                    :activation-fn 'lsp-activate-on
+                    :priority -1))
+  (add-hook 'tla-mode-hook #'lsp-deferred))
 
 (defvar tla-tlapm-font-lock-keywords
   `((,(regexp-opt
