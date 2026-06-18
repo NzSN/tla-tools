@@ -130,25 +130,31 @@ An alist with keys :kind, :status, :location, :obligations, :sub_count.")
   (setq tla-tlapm--step-overlays nil))
 
 (defun tla-tlapm--make-step-overlays (beg end face hover)
-  "Create overlays between BEG and END with FACE and HOVER, skipping spaces.
+  "Create overlays between BEG and END with FACE and HOVER, skipping TLAPS keywords.
 Returns a list of created overlays."
   (let ((overlays nil)
+        (kw-re (concat "\\_<" (regexp-opt tla-tlapm--keywords) "\\_>"))
         (pos beg))
     (save-excursion
       (while (< pos end)
         (goto-char pos)
-        (skip-chars-forward " \t" end)
-        (setq pos (point))
-        (when (< pos end)
-          (let ((seg-start pos))
-            (skip-chars-forward "^ \t" end)
-            (setq pos (point))
-            (when (> pos seg-start)
-              (let ((ov (make-overlay seg-start pos)))
-                (overlay-put ov 'face face)
-                (when hover (overlay-put ov 'help-echo hover))
-                (overlay-put ov 'tlapm-step t)
-                (push ov overlays)))))))
+        (if (re-search-forward kw-re end t)
+            (let ((kw-beg (match-beginning 0))
+                  (kw-end (match-end 0)))
+              (when (> kw-beg pos)
+                (let ((ov (make-overlay pos kw-beg)))
+                  (overlay-put ov 'face face)
+                  (when hover (overlay-put ov 'help-echo hover))
+                  (overlay-put ov 'tlapm-step t)
+                  (push ov overlays)))
+              (setq pos kw-end))
+          (when (> end pos)
+            (let ((ov (make-overlay pos end)))
+              (overlay-put ov 'face face)
+              (when hover (overlay-put ov 'help-echo hover))
+              (overlay-put ov 'tlapm-step t)
+              (push ov overlays)))
+          (setq pos end))))
     (nreverse overlays)))
 
 (defun tla-tlapm--apply-step-markers (markers)
@@ -221,14 +227,16 @@ Returns a list of created overlays."
                     :priority -1))
   (add-hook 'tla-mode-hook #'lsp-deferred))
 
+(defvar tla-tlapm--keywords
+  '("ACTION" "ASSUME" "BY" "COROLLARY" "DEF" "DEFINE" "DEFS"
+    "HAVE" "HIDE" "LEMMA" "NEW" "OBVIOUS" "OMITTED" "ONLY"
+    "PICK" "PROOF" "PROPOSITION" "PROVE" "QED" "RECURSIVE"
+    "STATE" "SUFFICES" "TAKE" "TEMPORAL" "THEOREM" "USE"
+    "WITNESS" "AXIOM")
+  "List of TLAPS keywords.")
+
 (defvar tla-tlapm-font-lock-keywords
-  `((,(regexp-opt
-       '("ACTION" "ASSUME" "BY" "COROLLARY" "DEF" "DEFINE" "DEFS"
-         "HAVE" "HIDE" "LEMMA" "NEW" "OBVIOUS" "OMITTED" "ONLY"
-         "PICK" "PROOF" "PROPOSITION" "PROVE" "QED" "RECURSIVE"
-         "STATE" "SUFFICES" "TAKE" "TEMPORAL" "THEOREM" "USE"
-         "WITNESS" "AXIOM")
-       'symbols)
+  `((,(regexp-opt tla-tlapm--keywords 'symbols)
      . 'tla-tlaps-keyword-face)
     ("<[[:word:]]>+\\([[:word:]]*\\.?\\)?"
      . 'tla-tlaps-step-face))
