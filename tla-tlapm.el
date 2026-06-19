@@ -225,8 +225,7 @@ Returns a list of created overlays."
                       (puthash "tlaplus/tlaps/currentProofStep"
                                #'tla-tlapm--lsp-handle-current-proof-step ht)
                       ht)
-                    :activation-fn 'lsp-activate-on
-                    :priority -1))
+                     :priority -1))
   (add-hook 'tla-mode-hook #'lsp-deferred))
 
 (defvar tla-tlapm--keywords
