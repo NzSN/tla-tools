@@ -414,6 +414,7 @@ be added to this command."
   ["PlusCal"
    ("t" "Translate PlusCal to TLA+" tla--run-pcal)]
   ["TLAPS"
+   (tla--tlapm-include-path-infix)
    ("l" "Run tlapm proof checker" tla-tlapm-run)
    ("L" "Prove step at point" tla-tlapm-prove-step)
    ("P" "Prove region/buffer" tla-tlapm-prove-region)]

@@ -83,6 +83,19 @@
   :risky t
   :group 'tla-tlapm)
 
+(defvar tla--tlapm-include-path nil
+  "Directory to search for TLA+ modules (tlapm -I flag).")
+
+(transient-define-infix tla--tlapm-include-path-infix ()
+  :description "Include path"
+  :class 'transient-lisp-variable
+  :variable 'tla--tlapm-include-path
+  :key "-I"
+  :shortarg "-I"
+  :argument "-I "
+  :reader (lambda (prompt _initial-input _history)
+            (read-directory-name prompt nil tla--tlapm-include-path t)))
+
 (defcustom tla-tlapm-lsp-command "tlapm_lsp"
   "The command to run the TLAPS LSP server."
   :type 'string
@@ -265,13 +278,17 @@ Returns a list of created overlays."
         (end (if (use-region-p) (region-end) (point-max))))
     (tla-tlapm--prove-range beg end)))
 
-(defun tla-tlapm-run (&optional _args)
+(defun tla-tlapm-run (&optional args)
   "Run TLAPS proof manager on the current buffer."
-  (interactive)
+  (interactive
+   (list (transient-args 'tla-pcal-transient)))
   (transient-set)
-  (let ((filename (file-relative-name buffer-file-name)))
+  (let* ((filename (file-relative-name buffer-file-name))
+         (include-args (seq-filter (lambda (a) (string-prefix-p "-I " a)) args)))
     (set (make-local-variable 'compile-command)
          (concat tla-tlapm-command " "
+                 (mapconcat #'identity include-args " ")
+                 (when include-args " ")
                  (shell-quote-argument filename)))
     (compile compile-command)))
 
