@@ -278,17 +278,15 @@ Returns a list of created overlays."
         (end (if (use-region-p) (region-end) (point-max))))
     (tla-tlapm--prove-range beg end)))
 
-(defun tla-tlapm-run (&optional args)
+(defun tla-tlapm-run (&optional _args)
   "Run TLAPS proof manager on the current buffer."
-  (interactive
-   (list (transient-args 'tla-pcal-transient)))
+  (interactive)
   (transient-set)
-  (let* ((filename (file-relative-name buffer-file-name))
-         (include-args (seq-filter (lambda (a) (string-prefix-p "-I " a)) args)))
+  (let ((filename (file-relative-name buffer-file-name)))
     (set (make-local-variable 'compile-command)
          (concat tla-tlapm-command " "
-                 (mapconcat #'identity include-args " ")
-                 (when include-args " ")
+                 (when tla--tlapm-include-path
+                   (concat "-I " (shell-quote-argument tla--tlapm-include-path) " "))
                  (shell-quote-argument filename)))
     (compile compile-command)))
 
